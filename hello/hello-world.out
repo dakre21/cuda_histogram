@@ -1,0 +1,56 @@
+Sender: LSF System <phpcadmin@gpu63>
+Subject: Job 725915: <hello_world> in cluster <phpc_cluster> Exited
+
+Job <hello_world> was submitted from host <elgato-login.hpc.arizona.edu> by user <dakre> in cluster <phpc_cluster>.
+Job was executed on host(s) <16*gpu63>, in queue <windfall>, as user <dakre> in cluster <phpc_cluster>.
+                            <16*gpu10>
+</home/u32/dakre> was used as the home directory.
+</extra/dakre/cuda_histogram/hello> was used as the working directory.
+Started at Sun Oct 15 15:33:45 2017
+Results reported at Sun Oct 15 15:33:48 2017
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+```bash 
+#!/bin/bash 
+#BSUB -n 32 
+#BSUB -o hello-world.out 
+#BSUB -e hello-world.err 
+#BSUB -q "windfall" 
+#BSUB -J hello_world 
+#BSUB -R gpu 
+#--------------------------------------------------------------------- 
+
+module load cuda  
+cd /extra/dakre/cuda_histogram/hello
+time ./hello
+###end of script 
+``` 
+
+------------------------------------------------------------
+
+Exited with exit code 127.
+
+Resource usage summary:
+
+    CPU time :               0.35 sec.
+    Max Memory :             2 MB
+    Average Memory :         2.00 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between total requested memory and actual max usage.)
+    Max Swap :               47 MB
+
+    Max Processes :          1
+    Max Threads :            1
+
+The output (if any) follows:
+
+
+
+PS:
+
+Read file <hello-world.err> for stderr output of this job.
+
