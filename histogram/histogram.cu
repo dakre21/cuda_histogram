@@ -16,37 +16,41 @@ a file given by the second argument.
 
 using namespace std;
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE   1
+#define THREAD_SIZE  1
+#define NUM_ELEMENTS 10
 
 // Global declaration for FILEs
 FILE* file_out;
 FILE* file_in;
 
-__global__ void calc_histogram(char* element, int* zero_ptr, int* one_ptr,
-    int* two_ptr, int* three_ptr, int* four_ptr, int* five_ptr, int* six_ptr,
-    int* seven_ptr, int* eight_ptr, int* nine_ptr) {
-    
-    // Increment counter per occurances
-    if (element == "0") {
-        *zero_ptr += 1;
-    } else if (element == "1") {
-        *one_ptr += 1;
-    } else if (element == "2") {
-        *two_ptr += 1;
-    } else if (element == "3") {
-        *three_ptr += 1;
-    } else if (element == "4") {
-        *four_ptr += 1;
-    } else if (element == "5") {
-        *five_ptr += 1;
-    } else if (element == "6") {
-        *six_ptr += 1;
-    } else if (element == "7") {
-        *seven_ptr += 1;
-    } else if (element == "8") {
-        *eight_ptr += 1;
-    } else if (element == "9") {
-        *nine_ptr += 1;
+__global__ void calc_histogram(char* dbuff, int* dcount, int size) {
+
+    int index = threadIdx.x + blockDim.x*blockIdx.x;
+
+    for (int i = index; i < size; i++) {
+        // Increment counter per occurances
+        if (dbuff[i] == '0') {
+            dcount[0] += 1;
+        } else if (dbuff[i] == '1') {
+            dcount[1] += 1;
+        } else if (dbuff[i] == '2') {
+            dcount[2] += 1;
+        } else if (dbuff[i] == '3') {
+            dcount[3] += 1;
+        } else if (dbuff[i] == '4') {
+            dcount[4] += 1;
+        } else if (dbuff[i] == '5') {
+            dcount[5] += 1;
+        } else if (dbuff[i] == '6') {
+            dcount[6] += 1;
+        } else if (dbuff[i] == '7') {
+            dcount[7] += 1;
+        } else if (dbuff[i] == '8') {
+            dcount[8] += 1;
+        } else if (dbuff[i] == '9') {
+            dcount[9] += 1;
+        }
     }
 }
 
@@ -89,102 +93,41 @@ int create_histogram() {
     // Forward declarations
     int rc           = 0;
     int size         = 0;
-    int zero_count   = 0;
-    int one_count    = 0;
-    int two_count    = 0;
-    int three_count  = 0;
-    int four_count   = 0;
-    int five_count   = 0;
-    int six_count    = 0;
-    int seven_count  = 0;
-    int eight_count  = 0;
-    int nine_count   = 0;
     char* buff;
-    char* element;
-    int* zero_ptr;
-    int* one_ptr;
-    int* two_ptr;
-    int* three_ptr;
-    int* four_ptr;
-    int* five_ptr;
-    int* six_ptr;
-    int* seven_ptr;
-    int* eight_ptr;
-    int* nine_ptr;
-
+    char* dbuff;
+    int count[NUM_ELEMENTS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    int* dcount;
+    
     // Read the size of the file
     fseek(file_in, 0, SEEK_END);
-    size = ftell(file_in);
+    size = ftell(file_in) + 1;
     rewind(file_in);
 
+    // Malloc space for CUDA
+    cudaMalloc((void**)&dbuff, size);
+    cudaMalloc((void**)&dcount, 10);
+
     // Create heap space for buffer
-    buff = reinterpret_cast<char*>(malloc((size + 1)*sizeof(char)));
+    buff = reinterpret_cast<char*>(malloc(size*sizeof(char)));
     memset(buff, '\0', size);
 
     // Read file
-    fread(buff, size, 1, file_in);
+    fread(buff, size, sizeof(char), file_in);
 
-    // Malloc space for CUDA
-    cudaMalloc((void**)&element, size);
-    cudaMemcpy(element, buff, size, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&zero_ptr, 1);
-    cudaMemcpy(zero_ptr, &zero_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&one_ptr, 1);
-    cudaMemcpy(one_ptr, &one_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&two_ptr, 1);
-    cudaMemcpy(two_ptr, &two_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&three_ptr, 1);
-    cudaMemcpy(three_ptr, &three_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&four_ptr, 1);
-    cudaMemcpy(four_ptr, &four_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&five_ptr, 1);
-    cudaMemcpy(five_ptr, &five_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)& six_ptr, 1);
-    cudaMemcpy(six_ptr, &six_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&seven_ptr, 1);
-    cudaMemcpy(seven_ptr, &seven_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&eight_ptr, 1);
-    cudaMemcpy(eight_ptr, &eight_count, 1, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&nine_ptr, 1);
-    cudaMemcpy(nine_ptr, &nine_count, 1, cudaMemcpyHostToDevice);
+    cudaMemcpy(dbuff, buff, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(dcount, count, NUM_ELEMENTS, cudaMemcpyHostToDevice);
 
-    dim3 dim_block(BLOCK_SIZE, 1);
-    dim3 dim_grid(1, 1);
-    calc_histogram<<<dim_grid, dim_block>>>(element, zero_ptr, one_ptr,
-        two_ptr, three_ptr, four_ptr, five_ptr, six_ptr, seven_ptr, eight_ptr,
-        nine_ptr);
+    dim3 dimBlock(BLOCK_SIZE, 1);
+    dim3 dimGrid(1, 1);
 
-    cudaMemcpy(&zero_count, zero_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&one_count, one_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&two_count, two_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&three_count, three_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&four_count, four_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&five_count, five_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&six_count, six_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&seven_count, seven_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&eight_count, eight_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&nine_count, nine_ptr, 1, cudaMemcpyDeviceToHost);
-    cudaFree(zero_ptr);
-    cudaFree(one_ptr);
-    cudaFree(two_ptr);
-    cudaFree(three_ptr);
-    cudaFree(four_ptr);
-    cudaFree(five_ptr);
-    cudaFree(six_ptr);
-    cudaFree(seven_ptr);
-    cudaFree(eight_ptr);
-    cudaFree(nine_ptr);
+    calc_histogram<<<BLOCK_SIZE, THREAD_SIZE>>>(dbuff, dcount, size);
 
-    cout << zero_count << endl;
-    cout << one_count << endl;
-    cout << two_count << endl;
-    cout << three_count << endl;
-    cout << four_count << endl;
-    cout << five_count << endl;
-    cout << six_count << endl;
-    cout << seven_count << endl;
-    cout << eight_count << endl;
-    cout << nine_count << endl;
+    cudaMemcpy(buff, dbuff, size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(count, dcount, NUM_ELEMENTS, cudaMemcpyDeviceToHost);
+
+    cudaFree(dbuff);
+    cudaFree(dcount);
+    free(buff);
 
     return rc;
 }
