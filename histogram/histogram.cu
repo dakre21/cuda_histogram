@@ -25,6 +25,7 @@ FILE* file_in;
 __global__ void calc_histogram(char* element, int* zero_ptr, int* one_ptr,
     int* two_ptr, int* three_ptr, int* four_ptr, int* five_ptr, int* six_ptr,
     int* seven_ptr, int* eight_ptr, int* nine_ptr) {
+    
     // Increment counter per occurances
     if (element == "0") {
         *zero_ptr += 1;
@@ -119,6 +120,9 @@ int create_histogram() {
     // Create heap space for buffer
     buff = reinterpret_cast<char*>(malloc((size + 1)*sizeof(char)));
     memset(buff, '\0', size);
+
+    // Read file
+    fread(buff, size, 1, file_in);
 
     // Malloc space for CUDA
     cudaMalloc((void**)&element, size);
