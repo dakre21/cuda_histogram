@@ -61,6 +61,10 @@ __global__ void calc_histogram(char* dbuff, unsigned int* dcount, unsigned int s
     }
 }
 
+__global__ void testing(char* test) {
+    test[0] = 'b';
+}
+
 void app_exit(int rc) {
     // Close files and exit
     fclose(file_in);
@@ -104,6 +108,8 @@ int create_histogram() {
     char* dbuff;
     unsigned int count[NUM_ELEMENTS] = { 0 };
     unsigned int* dcount;
+    char tmp[1] = { 'a' };
+    char* tmp_ptr;
     
     // Read the size of the file
     fseek(file_in, 0, SEEK_END);
@@ -111,8 +117,9 @@ int create_histogram() {
     rewind(file_in);
 
     // Malloc space for CUDA
-    cudaMalloc((void**)&dbuff, size);
-    cudaMalloc((void**)&dcount, NUM_ELEMENTS);
+    cudaMalloc((void**)&dbuff, size*sizeof(char));
+    cudaMalloc((void**)&dcount, NUM_ELEMENTS*sizeof(unsigned int));
+    cudaMalloc((void**)&tmp_ptr, sizeof(char));
 
     // Create heap space for buffer
     buff = reinterpret_cast<char*>(malloc(size*sizeof(char)));
@@ -123,20 +130,18 @@ int create_histogram() {
 
     cudaMemcpy(dbuff, buff, (size*sizeof(char)), cudaMemcpyHostToDevice);
     cudaMemcpy(dcount, count, (NUM_ELEMENTS*sizeof(unsigned int)), cudaMemcpyHostToDevice);
+    cudaMemcpy(tmp_ptr, tmp, sizeof(char), cudaMemcpyHostToDevice);
 
     // Set num blocks and num threads per block
     dim3 dimBlock(BLOCK_SIZE);
     dim3 dimGrid(GRID_SIZE);
 
-    //calc_histogram<<<dimGrid, dimBlock>>>(dbuff, dcount, size);
-    calc_histogram2(buff, count, size);
+    calc_histogram<<<dimGrid, dimBlock>>>(dbuff, dcount, size);
+    //testing<<<1, 1>>>(tmp_ptr);
 
     cudaMemcpy(buff, dbuff, (size*sizeof(char)), cudaMemcpyDeviceToHost);
     cudaMemcpy(count, dcount, (NUM_ELEMENTS*sizeof(unsigned int)), cudaMemcpyDeviceToHost);
-
-    cout << count[0] << endl;
-    cout << count[1] << endl;
-    cout << count[2] << endl;
+    cudaMemcpy(tmp, tmp_ptr, sizeof(char), cudaMemcpyHostToDevice);
 
     // Write to file
     fprintf(file_out, "0 => %u\n", count[0]);
