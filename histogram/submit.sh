@@ -1,5 +1,5 @@
 #!/bin/bash 
-#BSUB -n 32 
+#BSUB -n 16
 #BSUB -o histogram.out 
 #BSUB -e histogram.err 
 #BSUB -q "windfall" 
