@@ -1,0 +1,42 @@
+- How do you transfer the data to global memory and why?  
+I transfered the 4096x4096 integer array read by the host to the device via cudaMemcpy with the identifier cudaMemcpyHostToDevice.
+The identifier copies that data from the host's heap onto the GPU's global memory heap which was allocated prior the the cudaMemcpy
+function call via cudaMalloc. Inside of the device function I utilize a local array to capture the current threads count and then
+allocate it back into the global memory structure (additionally I synchronize the threads within the block prior to allocating 
+data to the global memory array). This was the safest way for me to correctly count the occurances of specific integers in the 
+4096x4096 array without overwritting other threads data or running into deadlock issues.
+
+- How do you transfer the data from global memory to shared memory and local memory and why?  
+I didn't use shared memory, but instead used local memory on a per thread basis so I could synchronize the integer counts better. 
+Shared memory works well when you have multiple threads within one block, but it appeared that utilizing local memory and then 
+allocating it to the global memory gave me the best response times. To simply utilize global and local memory in the device function
+I just create a new array with 10 elements, increase each of the array's elements based on the integers occurance, and at the end
+of that threads execution I allocate the local memory to the global memory array structure.
+
+- How do you apply data partitioning and why?  
+I applied partitioning based on the number of threads and blocks the user defined which I call a "stride". The stride essentially 
+holds the quotient of the total size of the array read in by the HOST divided by the product of the block size and thread size 
+which are both respectively the thread/block counts. I did this because I could partition the data more meaningfully on a per
+thread basis meaning all threads will execute a segment of the total array that is completely unique to one another (no threads
+will be doing any calculations on the same array segment).
+
+- How do you decide on the number of blocks and threads and why?  
+I tested out a bunch of different combinations of thread & block sizes, and it seems that you reach an asymptotic maximum on calculation
+efficiency when you reach the number of threads * blocks = total size, which in this case is 4096x4096 (note including spaces per my algorithm). 
+After this you will have extra threads that won't perform any execution on the code because it is unnecessary (e.g. only one thread can find one 
+element in the array).
+
+- Try at least 5 block & thread sizes and compare their performance and elaborate the results.  
+1 block & 1 thread = 33.97 sec
+1 block & 2 threads = 17.245 sec
+1 block & 4 threads = 8.80 sec
+1 block & 8 threads = 4.62 sec
+1 block & 16 threads = 2.51 sec
+2 blocks & 16 threads = 1.61 sec
+
+- What number for block and thread size gives you the best result? Please elaborate the possible reasons. 
+The best result I received was 1024 blocks by 1024 threads which led to 0.44sec total execution time... note 512x512 led to 0.45sec total execution 
+time, so the margin of improvement was 0.01sec. The maximum about of threads x blocks in CUDA is 1024x1024 per GPU unit, thus if I were too surpass
+this amount on the distributed network I will start getting networking delays which will slow down performance. Also, the performance of execution
+seems to be reaching an asymptotic limit as I mentioned earlier, basically meaning as I get closer to the total size of computation I cannot achieve
+any more speedup, if I attempt to achieve more speedup I can actually downgrade my overall system's performance.
