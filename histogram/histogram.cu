@@ -62,6 +62,8 @@ __global__ void calc_histogram(char* dbuff, unsigned int* dcount, unsigned int s
         }
     }
 
+    __syncthreads();
+
     dcount[0] += lcount[0];
     dcount[1] += lcount[1];
     dcount[2] += lcount[2];
