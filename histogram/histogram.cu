@@ -19,7 +19,7 @@ a file given by the second argument.
 using namespace std;
 
 #define BLOCK_SIZE   1
-#define THREAD_SIZE  2
+#define THREAD_SIZE  16
 #define NUM_ELEMENTS 10 
 
 // Global declaration for FILEs
@@ -36,8 +36,6 @@ __global__ void calc_histogram(char* dbuff, unsigned int* dcount, unsigned int s
     if (size < stop_pos) {
         stop_pos = size;
     }
-
-    //__syncthreads();
 
     for (unsigned int i = start_pos; i < stop_pos; i++) {
         // Increment counter per occurances
@@ -62,7 +60,6 @@ __global__ void calc_histogram(char* dbuff, unsigned int* dcount, unsigned int s
         } else if (dbuff[i] == '9') {
             lcount[9] += 1;
         }
-        //__syncthreads();
     }
 
     dcount[0] += lcount[0];
