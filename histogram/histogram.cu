@@ -19,7 +19,7 @@ a file given by the second argument.
 using namespace std;
 
 #define BLOCK_SIZE   1
-#define THREAD_SIZE  4
+#define THREAD_SIZE  2
 #define NUM_ELEMENTS 10 
 
 // Global declaration for FILEs
@@ -75,46 +75,6 @@ __global__ void calc_histogram(char* dbuff, unsigned int* dcount, unsigned int s
     dcount[7] += lcount[7];
     dcount[8] += lcount[8];
     dcount[9] += lcount[9];
-}
-
-void calc_histogram2(char* dbuff, unsigned int* dcount, unsigned int size, int block_id, float stride) {
-
-    unsigned int start_pos = stride * block_id;
-    unsigned int stop_pos = start_pos + stride;
-
-    cout << "size " << size << endl;
-    cout << "stride " << stride << endl;
-    cout << "start " << start_pos << endl;
-    cout << "stop " << stop_pos << endl;
-
-    if (size < stop_pos) {
-        return;
-    }
-
-    for (unsigned int i = start_pos; i < stop_pos; i++) {
-        // Increment counter per occurances
-        if (dbuff[i] == '0') {
-            dcount[0] += 1;
-        } else if (dbuff[i] == '1') {
-            dcount[1] += 1;
-        } else if (dbuff[i] == '2') {
-            dcount[2] += 1;
-        } else if (dbuff[i] == '3') {
-            dcount[3] += 1;
-        } else if (dbuff[i] == '4') {
-            dcount[4] += 1;
-        } else if (dbuff[i] == '5') {
-            dcount[5] += 1;
-        } else if (dbuff[i] == '6') {
-            dcount[6] += 1;
-        } else if (dbuff[i] == '7') {
-            dcount[7] += 1;
-        } else if (dbuff[i] == '8') {
-            dcount[8] += 1;
-        } else if (dbuff[i] == '9') {
-            dcount[9] += 1;
-        }
-    }
 }
 
 void app_exit(int rc) {
@@ -183,11 +143,7 @@ int create_histogram() {
 
     stride = ceil(float(size / (BLOCK_SIZE * THREAD_SIZE)));
 
-    calc_histogram<<<BLOCK_SIZE, THREAD_SIZE>>>(dbuff, dcount, size, stride);
-    /*calc_histogram2(buff, count, size, 0, stride);
-    cout << count[0] << endl;
-    calc_histogram2(buff, count, size, 1, stride);
-    cout << count[0] << endl;*/
+    calc_histogram<<<THREAD_SIZE, BLOCK_SIZE>>>(dbuff, dcount, size, stride);
 
     cudaMemcpy(buff, dbuff, (size*sizeof(char)), cudaMemcpyDeviceToHost);
     cudaMemcpy(count, dcount, (NUM_ELEMENTS*sizeof(unsigned int)), cudaMemcpyDeviceToHost);
